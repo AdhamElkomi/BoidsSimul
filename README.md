@@ -21,7 +21,8 @@ L'interface offre plusieurs outils interactifs permettant de modifier les param�
   - `+` : ajouter un boid.
   - `-` : retirer un boid.
   - `Clear` : réinitialiser tous les boids.
-  - `Pause` : mettre en pause ou reprendre la simulation.
+  - `▶️/⏸️` : mettre en pause ou reprendre la simulation.
+  - `⏪/⏩` : accélerer ou décélérer la simulation.
   - `Show/Hide` : afficher ou masquer les zones de vision.
 
 ### 🎨 **Affichage des interactions**
