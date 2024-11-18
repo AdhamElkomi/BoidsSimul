@@ -17,9 +17,9 @@ BLACK =(0, 0, 0)
 GOLD=(255, 215, 0)
 BLUE=(0, 0, 255)
 LIGHT_BLUE=(173, 216, 230)
-
-
-
+VERT_CLAIR=(0, 255, 0)
+ROUGE=(255, 0, 0)
+TRANSPARENT=(0,0,0,0)
 pause=False
 side_length_triangle_vitesse = (2 / 3) * 20  # Rayon donné (ajusté) 
 triangle_vitesse_height = (math.sqrt(3) / 2) * side_length_triangle_vitesse  # Hauteur du triangle équilatéral
@@ -142,10 +142,6 @@ text_rect_plus = text_plus.get_rect(center=circle_plus_center)
 text_rect_moin = text_moin.get_rect(center=circle_minus_center)
 text_rect_clear=text_clear.get_rect(center=button_clear_center)
 
-
-
-
-
 pygame.display.set_caption("Simulation de Boids")
 #button_rect = pygame.Rect(850, 600, 200, 60)
 
@@ -156,7 +152,7 @@ class Boid:
         self.velocity = pygame.Vector2(random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * MAX_SPEED
         self.acceleration = pygame.Vector2(0, 0)
         self.state = "active"  # "active", "recharging"
-        self.battery = 100 
+        self.battery = random.randint(10,95)
         
         self.color = color  # Couleur principale (par ex. blanc)
         
@@ -182,11 +178,11 @@ class Boid:
     #mafrud alignement tamem
     def check_color(self):
         if self.battery<=20 and self.state=="active":
-            self.color=(255, 0, 0)
-        elif self.battery<=100 and self.battery>=95:
-            self.color=(0, 255, 0)    
+            self.color=ROUGE
+        elif self.battery<=100 and self.battery>=97:
+            self.color=VERT_CLAIR    
         else:
-            self.color=(255,255,255)    
+            self.color=WHITE    
     def align(self, boids):
         steering = pygame.Vector2(0, 0)#initialisation du vecteur 0,0
         total = 0
@@ -295,6 +291,17 @@ class Boid:
 
         return steering
 
+    def decharging_phase(self):
+        if pause==False:
+            base_consumption = 0.02  # Consommation normale à une vitesse de base
+            self.battery -= base_consumption * MAX_SPEED
+        else:
+            self.battery=self.battery
+            
+
+
+
+
     def update(self):
     # Si en pause, on ne fait rien
         if pause:
@@ -352,11 +359,11 @@ class Boid:
         for i in range(5):
             # Déterminer la couleur du segment
             if self.battery >= (i + 1) * 20:  # Si la batterie couvre ce segment
-                color = (0, 255, 0)  # Vert clair
+                color = VERT_CLAIR  # Vert clair
             elif self.battery <= 20 and i == 0:  # Batterie critique
-                color = (255, 0, 0)  # Rouge
+                color = ROUGE  # Rouge
             else:
-                color = (0, 0, 0, 0)  # Transparent
+                color = TRANSPARENT  # Transparent
 
             # Calculer les dimensions du segment
             segment_rect = pygame.Rect(x + i * segment_width, top_y, segment_width, height)
@@ -427,14 +434,14 @@ class Boid:
 boids = [Boid() for _ in range(NUM_BOIDS)]
 recharging_boids={}
           
-# def add_boid():
-#     boid = Boid()  # Cree un nouveau boid
-#     boids.append(boid)  # Ajoute ce boid a la liste des boids
-#     return boids
-# def remove_boid():
-#     if len(boids) > 0:  # Verifier si des boids existent avant de retirer
-#         boids.pop()  # Retire le dernier boid de la liste
-#     return boids
+def add_boid():
+    boid = Boid()  # Cree un nouveau boid
+    boids.append(boid)  # Ajoute ce boid a la liste des boids
+    return boids
+def remove_boid():
+    if len(boids) > 0:  # Verifier si des boids existent avant de retirer
+        boids.pop()  # Retire le dernier boid de la liste
+    return boids
 
 #fonction pour augmenter le vitesse
 def augmenter_vitesse():
@@ -449,16 +456,16 @@ def diminuer_vitesse():
     if MAX_SPEED<=0.1:
         MAX_SPEED=0.1
 #fonction pour ajouter les boids
-def add_boid():
-    if not pause:  # Ajouter un boid uniquement si la simulation n est pas en pause
-        boid = Boid()  # Crée un nouveau boid
-        boids.append(boid)  # Ajoute ce boid a la liste des boids
-    return boids
-#fonction pour enlever les boids
-def remove_boid():
-    if not pause and len(boids) > 0:  # Retirer un boid uniquement si la simulation n est pas en pause
-        boids.pop()  # Retire le dernier boid de la liste
-    return boids
+# def add_boid():
+#     if not pause:  # Ajouter un boid uniquement si la simulation n est pas en pause
+#         boid = Boid()  # Crée un nouveau boid
+#         boids.append(boid)  # Ajoute ce boid a la liste des boids
+#     return boids
+# #fonction pour enlever les boids
+# def remove_boid():
+#     if not pause and len(boids) > 0:  # Retirer un boid uniquement si la simulation n est pas en pause
+#         boids.pop()  # Retire le dernier boid de la liste
+#     return boids
 #fonction qui enleve tous les boids a une click
 def clear():
     for i in range(len(boids)):
@@ -470,16 +477,16 @@ while running:
     
     window.fill(BLACK)
     # Dessiner la zone du jeu et la zone des paramètres
-    pygame.draw.rect(window, (0, 0, 0), game_area)
-    pygame.draw.rect(window, (255, 215, 0), settings_area)
-    pygame.draw.rect(window,(255,215,0),recharging_area)
+    pygame.draw.rect(window,BLACK, game_area)
+    pygame.draw.rect(window,GOLD, settings_area)
+    pygame.draw.rect(window,GOLD,recharging_area)
     
     # Obtenir la position de la souris
     mouse_pos = pygame.mouse.get_pos()
     
     # Definir les couleurs des cercles et du bouton en fonction de la position de la souris
-    circle_plus_color = LIGHT_BLUE if pygame.Rect(circle_plus_center[0] - 30, circle_plus_center[1] - 30, 60, 60).collidepoint(mouse_pos) or pause==True else BLUE
-    circle_minus_color = LIGHT_BLUE if pygame.Rect(circle_minus_center[0] - 30, circle_minus_center[1] - 30, 60, 60).collidepoint(mouse_pos) or len(boids) == 0 or pause==True else BLUE
+    circle_plus_color = LIGHT_BLUE if pygame.Rect(circle_plus_center[0] - 30, circle_plus_center[1] - 30, 60, 60).collidepoint(mouse_pos)  else BLUE
+    circle_minus_color = LIGHT_BLUE if pygame.Rect(circle_minus_center[0] - 30, circle_minus_center[1] - 30, 60, 60).collidepoint(mouse_pos) or len(boids) == 0 else BLUE
     button_reset_color = LIGHT_BLUE if button_reset.collidepoint(mouse_pos) or len(boids) == 0 else BLUE
     button_pause_color = LIGHT_BLUE if button_pause.collidepoint(mouse_pos) else BLUE
     circle_augmente_vitesse_color=LIGHT_BLUE if pygame.Rect(circle_augmente_vitesse_center[0] - 30, circle_augmente_vitesse_center[1] - 30, 60, 60).collidepoint(mouse_pos) or MAX_SPEED==2 else BLUE
@@ -516,6 +523,7 @@ while running:
     
     # Dessiner les boids et autres éléments
     for boid in boids:
+        boid.decharging_phase()
         boid.check_color()
         boid.apply_behaviors(boids)
         boid.update_charging()
@@ -545,7 +553,17 @@ while running:
 
             elif circle_diminue_vitesse.collidepoint(event.pos): 
                 diminuer_vitesse()  
-
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_PLUS or event.key == pygame.K_KP_PLUS:  # Ajouter un boid
+                add_boid()
+            elif event.key == pygame.K_MINUS or event.key == pygame.K_KP_MINUS:  # Supprimer un boid
+                remove_boid()       
+            elif event.key == pygame.K_RIGHT:
+                augmenter_vitesse()
+            elif event.key == pygame.K_LEFT:
+                diminuer_vitesse()
+            elif event.key == pygame.K_SPACE:
+                pause = not pause    
     pygame.display.flip()
 
 pygame.quit()
