@@ -1,16 +1,19 @@
 import pygame
 import random
 import math
- 
+
 # Configuration de la simulation
 WIDTH, HEIGHT = 800, 600
 NUM_BOIDS = 10
 MAX_SPEED = 0.6
-VITESSE_INITIAL=0.6
+VITESSE_INITIAL=2
 MAX_FORCE = 0.03
 VIEW_RADIUS = 60
 ALIGN_RADIUS=50 #rayon du alignement
 SEPARATION_RADIUS = 10#rayon du distanciation
+WIND_FORCE=3
+wind_direction = pygame.Vector2(0, 0)  # Direction initiale : pas de vent
+
 #colors
 WHITE=(255,255,255)
 BLACK =(0, 0, 0)
@@ -38,7 +41,7 @@ pygame.init()
 screen_center=(WIDTH, HEIGHT)
 #dimensions/zone
 
-game_area_dimension=(0, 0, WIDTH, HEIGHT - 100)
+game_area_dimension=(200, 0, WIDTH+200, HEIGHT - 100)
 settings_area_dimension=(200, HEIGHT - 100, WIDTH, 100)
 recharging_area_dimension=(0, 0, 200, HEIGHT)
 #centers/label
@@ -153,7 +156,7 @@ class Boid:
         self.acceleration = pygame.Vector2(0, 0)
         self.state = "active"  # "active", "recharging"
         self.battery = random.randint(10,95)
-        
+        self.wind="none" #"None" , "up" ,"down" ,"right","left"
         self.color = color  # Couleur principale (par ex. blanc)
         
     #juste pour faire call au ces 3 fonction
@@ -174,7 +177,29 @@ class Boid:
             # Réduction de la batterie de manière plus lente
              # Consommation plus lente
     
-           
+    def apply_wind(self):
+        if wind_direction.length() > 0:  # Si un vent est actif
+            # Normaliser la direction du vent pour obtenir un vecteur directionnel
+            target_direction = wind_direction.normalize()
+
+            # Calculer l'angle entre la direction actuelle et la direction cible
+            angle = self.velocity.angle_to(target_direction)
+
+            # Limiter la rotation par frame
+            max_rotation_angle = 3  # Limite en degrés (par exemple, 3° par frame)
+
+            if abs(angle) > max_rotation_angle:
+                # Déterminer le sens de la rotation
+                rotation_sign = 1 if angle > 0 else -1
+                self.velocity = self.velocity.rotate(rotation_sign * max_rotation_angle)
+            else:
+                # Si l'angle est inférieur à la limite, aligner directement
+                self.velocity = target_direction * self.velocity.length()
+
+            # Limiter la vitesse à MAX_SPEED
+            if self.velocity.length() > MAX_SPEED:
+                self.velocity = self.velocity.normalize() * MAX_SPEED
+
     #mafrud alignement tamem
     def check_color(self):
         if self.battery<=20 and self.state=="active":
@@ -433,7 +458,51 @@ class Boid:
 # Création des boids
 boids = [Boid() for _ in range(NUM_BOIDS)]
 recharging_boids={}
-          
+
+wind_offset = 0  # Déplacement initial des lignes
+wind_offset = 0  # Déplacement initial des lignes
+def draw_wind_in_area(screen, wind_direction, game_area_dimension, wind_offset):
+    x, y, w, h = game_area_dimension  # Extraire les dimensions de la zone
+    wind_surface = pygame.Surface((w, h), pygame.SRCALPHA)  # Créer une surface pour la zone
+    wind_surface.fill((0, 0, 0, 0))  # Remplir avec transparent
+
+    # Dessiner des lignes selon la direction du vent
+    if wind_direction.x != 0:  # Vent horizontal (gauche/droite)
+        for i in range(0, h, 20):  # Espacement vertical des lignes
+            start_x = (wind_offset * abs(wind_direction.x)) % w  # Calcul du point de départ
+            if wind_direction.x > 0:  # Vent vers la droite
+                end_x = start_x + w
+            else:  # Vent vers la gauche
+                end_x = start_x - w
+
+            pygame.draw.line(
+                wind_surface,
+                (200, 200, 200, 100),  # Gris clair avec transparence
+                (start_x, i),  # Point de départ
+                (end_x, i),  # Point de fin
+                3  # Épaisseur de ligne
+            )
+    elif wind_direction.y != 0:  # Vent vertical (haut/bas)
+        for i in range(0, w, 20):  # Espacement horizontal des lignes
+            start_y = (wind_offset * abs(wind_direction.y)) % h  # Calcul du point de départ
+            if wind_direction.y > 0:  # Vent vers le bas
+                end_y = start_y + h
+            else:  # Vent vers le haut
+                end_y = start_y - h
+
+            pygame.draw.line(
+                wind_surface,
+                (200, 200, 200, 100),  # Gris clair avec transparence
+                (i, start_y),  # Point de départ
+                (i, end_y),  # Point de fin
+                3  # Épaisseur de ligne
+            )
+
+    # Ajouter la surface de vent à l'écran principal
+    screen.blit(wind_surface, (x, y))
+
+
+
 def add_boid():
     boid = Boid()  # Cree un nouveau boid
     boids.append(boid)  # Ajoute ce boid a la liste des boids
@@ -523,13 +592,17 @@ while running:
     
     # Dessiner les boids et autres éléments
     for boid in boids:
+        boid.apply_wind()
         boid.decharging_phase()
         boid.check_color()
         boid.apply_behaviors(boids)
         boid.update_charging()
         boid.update()
         boid.draw(window)
-    
+    wind_offset = (wind_offset + 2) % (WIDTH + 200)  # Ajuster la vitesse d'animation
+
+    # Dessiner l'effet de vent dans la zone définie
+    draw_wind_in_area(window, wind_direction, game_area_dimension, wind_offset)
     # Gérer les événements
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -564,6 +637,20 @@ while running:
                 diminuer_vitesse()
             elif event.key == pygame.K_SPACE:
                 pause = not pause    
+            elif event.key == pygame.K_c:
+                clear()
+            elif event.key == pygame.K_w:  # Vent vers le haut
+                wind_direction = pygame.Vector2(0, -0.5) * WIND_FORCE
+            elif event.key == pygame.K_a:  # Vent vers la gauche
+                wind_direction = pygame.Vector2(-0.5, 0) * WIND_FORCE
+            elif event.key == pygame.K_d:  # Vent vers la droite
+                wind_direction = pygame.Vector2(0.5, 0) * WIND_FORCE
+            elif event.key == pygame.K_s:  # Vent vers le bas
+                wind_direction = pygame.Vector2(0, 0.5) * WIND_FORCE
+            elif event.key == pygame.K_q:  # Pas de vent
+                wind_direction = pygame.Vector2(0, 0)
+           
+
     pygame.display.flip()
 
 pygame.quit()
