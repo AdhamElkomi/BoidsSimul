@@ -1,7 +1,7 @@
 import pygame
 import random
 import math
-
+ 
 # Configuration de la simulation
 WIDTH, HEIGHT = 800, 600
 NUM_BOIDS = 10
