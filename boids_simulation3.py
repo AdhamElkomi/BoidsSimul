@@ -12,10 +12,10 @@ info = pygame.display.Info()
 WIDTH, HEIGHT = info.current_w, info.current_h # Dimension de la fenêtre
 NUM_BOIDS = 20 
 
-BOID_SPEED = 1.2  # Vitesse initiale des boids
-BOID_SPEED_MIN = 0.2  # Limite minimale
-BOID_SPEED_MAX = 2.5  # Limite maximale
-SPEED_FACTOR = 1.0  # Facteur initial, équivalent à x1.0
+BOID_SPEED = 3.5  # Vitesse initiale des boids
+BOID_SPEED_MIN = 1  # Limite minimale
+BOID_SPEED_MAX = 4  # Limite maximale
+SPEED_FACTOR = 1  # Facteur initial, équivalent à x1.0
 
 
 MAX_SPEED = 2 # Vitesse maximale des boids.
@@ -38,6 +38,7 @@ SEPARATION_RADIUS_MAX = ALIGN_RADIUS_MAX
 game_area_dimension=(150, 0, WIDTH+400, HEIGHT - 250)
 ALIGN_FORCE_SCALE = 4.0  # Force d'alignement paramétrable
 AVOID_FORCE_SCALE = 5.0  # Poids à l'évitement des obstacles
+
 s = 20  # Longueur des côtés du triangle
 h_triangle = (math.sqrt(3) / 2) * s  # Hauteur du triangle
 button_pause_center = (WIDTH - 250, HEIGHT - 90)
@@ -175,7 +176,7 @@ warning_timer = 0  # Pour gérer le clignotement
 # image Plane
 plane_image_path = os.path.join(os.path.dirname(__file__), "imageBoids", "plane.png")
 if not os.path.exists(plane_image_path):
-    raise FileNotFoundError(f"Le fichier plane.png est introuvable au chemin {image_path}")
+    raise FileNotFoundError(f"Le fichier plane.png est introuvable au chemin {plane_image_path}")
 plane_image = pygame.image.load(plane_image_path)
 plane_image = pygame.transform.scale(plane_image, (200, 200))
 plane_image = pygame.transform.rotate(plane_image, -90)  # Rotation initiale
@@ -221,6 +222,18 @@ radar_sweep_angle = 0  # Angle initial (en degrés)
 radar_sweep_speed = 2  # Vitesse du balayage (en degrés par frame)
 radar_trail = []  # Liste des angles précédents pour la trace
 message_display_timer = 0  # Durée pour afficher le message
+
+# Interaction avec la souris
+interaction_mode = False  # Mode désactivé par défaut
+
+# Mode 8
+eight_mode = False  # Désactivé par défaut
+t = 0 # Temps initial
+eight_center = pygame.Vector2(WIDTH // 2, HEIGHT // 2)  # Centre du chemin
+eight_scale = 200  # Taille du chemin (rayon)
+
+
+
 
 class Bomb:
     def __init__(self, position):
@@ -374,30 +387,39 @@ class Boid:
         self.battery = random.randint(10,95)
         self.color = (255, 255, 255)  # Couleur par défaut : blanche
         self.wind="none" #"None" , "up" ,"down" ,"right","left"
-    def apply_behaviors(self, boids, plane, bombs):
+    def apply_behaviors(self, boids, plane, bombs, eight_mode=False, eight_center=None, eight_scale=None):
         if paused:
             return
-        if self.state == "active" :
+        if self.state == "active":
             # Ajuster dynamiquement le champ de vision en fonction de la distance avec l'avion
             distance_to_plane = float('inf')  # Valeur par défaut si l'avion n'existe pas
             if plane_active and plane is not None:
                 distance_to_plane = self.position.distance_to(plane.position)
             adjusted_view_radius = VIEW_RADIUS
-            if plane_active and plane is not None and distance_to_plane < plane.size + VIEW_RADIUS :
+            if plane_active and plane is not None and distance_to_plane < plane.size + VIEW_RADIUS:
                 adjusted_view_radius = VIEW_RADIUS * 1.5  # Augmenter le champ de vision
 
-        # Appliquer les forces comportementales
+            # Appliquer les forces comportementales
             alignment = self.align(boids, adjusted_view_radius)
             cohesion = self.cohere(boids, adjusted_view_radius)
             separation = self.separate(boids, adjusted_view_radius)
             avoid_plane = self.avoid_plane(plane) if plane_active and plane is not None else pygame.Vector2(0, 0)
+
+            # Calculer la force du chemin en 8 si le mode est activé
+            if eight_mode:
+                eight_force = self.follow_eight_path(eight_center, eight_scale)
+            else:
+                eight_force = pygame.Vector2(0, 0)  # Force nulle si le mode "8" est désactivé
+
             # Ajustement pondéré des forces pour garder le groupe
-            self.acceleration += ( 
+            self.acceleration += (
                 0.6 * alignment +
                 0.5 * cohesion +
                 0.8 * separation +
-                1.5 * avoid_plane 
+                1.5 * avoid_plane +
+                1.2 * eight_force
             )
+
             self.check_battery_color()
             if separation.length() > 0:
                 self.color = (148, 0, 211)  #  : séparation
@@ -418,6 +440,34 @@ class Boid:
                 break  # Évitez plusieurs téléportations en un seul tick
 
         # Déterminer la couleur en fonction des interactions
+        if interaction_mode:
+            mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
+            distance_to_mouse = self.position.distance_to(mouse_pos)
+            
+            # Force d'attraction (centre de masse autour de la souris)
+            if distance_to_mouse > 50:  # Rayon de sécurité autour de la souris
+                attraction_force = (mouse_pos - self.position).normalize() * MAX_FORCE
+            else:
+                attraction_force = pygame.Vector2(0, 0)  # Pas d'attraction dans le cercle
+
+            # Force de répulsion pour éviter d'entrer dans le cercle
+            if distance_to_mouse < 50:
+                avoidance_force = (self.position - mouse_pos).normalize() * MAX_FORCE
+            else:
+                avoidance_force = pygame.Vector2(0, 0)
+
+            # Combiner les forces
+            self.acceleration += (
+                0.6 * alignment +
+                0.5 * cohesion +
+                0.8 * separation +
+                1.5 * avoid_plane +
+                1.0 * attraction_force +  # Influence de la souris
+                1.2 * avoidance_force     # Évite la souris
+            )
+
+
+
         
     def apply_wind(self):
         if paused:
@@ -527,10 +577,25 @@ class Boid:
         else:
             dynamic_max_rotation_speed = MAX_ROTATION_SPEED  # Utilisez une valeur par défaut si l'avion n'est pas actif
 
+        if eight_mode:  # Si le mode en 8 est activé
+            # Force d'attraction vers le chemin en 8
+            attraction = self.attract_to_eight(t, eight_center, eight_scale)
+            self.acceleration += attraction
+            
+            # Renforcer l'alignement et la cohésion pour un mouvement fluide
+            alignment = self.align(boids, ALIGN_RADIUS)
+            cohesion = self.cohere(boids, VIEW_RADIUS)
+            self.acceleration += 0.8 * alignment + 0.5 * cohesion
+        else:
+            # Comportement normal
+            self.apply_behaviors(boids, plane, bombs)
+
         # Calculez la nouvelle direction avec accélération
         new_velocity = self.velocity + self.acceleration
         if new_velocity.length() > BOID_SPEED:
             new_velocity = new_velocity.normalize() * BOID_SPEED * SPEED_FACTOR
+        if new_velocity.length() < BOID_SPEED_MIN:
+            new_velocity = new_velocity.normalize() * BOID_SPEED_MIN * SPEED_FACTOR
 
         # Limitez la rotation
         current_angle = math.atan2(self.velocity.y, self.velocity.x)
@@ -697,6 +762,31 @@ class Boid:
             plane_speed_factor = plane.velocity.length() / PLANE_SPEED  # Facteur basé sur la vitesse
             return diff * MAX_FORCE * (1.5 + plane_speed_factor * 3)  # Augmente l'effet en fonction de la vitesse
         return pygame.Vector2(0, 0)
+    
+    #Attire le boid vers le chemin en forme de 8.
+    def attract_to_eight(self, t, center, scale):
+        path_position = eight_path(t, center, scale)
+        attraction_force = path_position - self.position  # Force vers le chemin
+        attraction_strength = 0.05  # Ajustez l'intensité
+        return attraction_force.normalize() * attraction_strength
+    
+    def follow_eight_path(self, eight_center, eight_scale):
+        """
+        Calcule une force qui attire le boid vers le chemin en 8.
+        :param eight_center: Centre du chemin en 8.
+        :param eight_scale: Taille du chemin en 8.
+        :return: Une force vectorielle.
+        """
+        t = (pygame.time.get_ticks() % 5000) / 5000  # Tension dynamique (cycle)
+        target = eight_path(t, eight_center, eight_scale)
+        steering = pygame.Vector2(target) - self.position  # Calcul de la direction vers le chemin
+        distance = steering.length()
+
+        if distance > 0:  # Évite la division par zéro
+            steering = steering.normalize() * MAX_FORCE  # Applique une force limitée
+        return steering
+
+
 
 
 boids = [Boid() for _ in range(NUM_BOIDS)]
@@ -935,6 +1025,19 @@ def draw_project_title(screen, title="ASFOUR"):
     # Dessiner le texte
     screen.blit(title_surface, title_rect)
 
+def eight_path(t, center, scale):
+    """
+    Calcule un point sur le chemin en 8.
+    :param t: Position relative sur le chemin (entre 0 et 1).
+    :param center: Centre de la forme (pygame.Vector2).
+    :param scale: Taille de la forme.
+    :return: Un point (pygame.Vector2) sur le chemin.
+    """
+    x = center[0] + scale * math.sin(t * 2 * math.pi)
+    y = center[1] + scale * math.sin(t * 4 * math.pi) * math.cos(t * 2 * math.pi)
+    return (x, y)  # Retourne un tuple pour compatibilité avec pygame.draw.line
+
+
 
 clock = pygame.time.Clock()
 running = True
@@ -955,7 +1058,7 @@ while running:
     clock.tick(60)
     window.fill(LIGHT_BLUE)
     draw_project_title(window, title="ASFOUR")
-
+    t+=1
 
     show_warning = len(bombs) > 0  # Active l'avertissement si au moins une bombe est présente
 
@@ -1084,6 +1187,11 @@ while running:
                 wind_direction = pygame.Vector2(0, 0.5) * WIND_FORCE
             elif event.key == pygame.K_q:  # Pas de vent
                 wind_direction = pygame.Vector2(0, 0)
+            elif event.key == pygame.K_i:
+                interaction_mode = not interaction_mode
+            if event.key == pygame.K_8:
+                eight_mode = not eight_mode  # Alterne le mode
+
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             # Vérifiez les clics sur chaque slider
@@ -1170,7 +1278,7 @@ while running:
         stats_rect_width -= stats_toggle_speed  # Fermer la zone progressivement
 
     for boid in boids:
-            boid.apply_behaviors(boids, plane, bombs)
+            boid.apply_behaviors(boids, plane, bombs, eight_mode, (WIDTH // 2, HEIGHT // 2), 200)
             boid.update()
             boid.decharging_phase()
             boid.check_battery_color()
@@ -1179,8 +1287,15 @@ while running:
             boid.draw(window)
             boid.update_charging()
 
-    stats_rect = pygame.Rect(WIDTH - stats_rect_width, 0, stats_rect_width, 200)
-    pygame.draw.rect(window, (50, 50, 50), stats_rect)
+    # Créer une surface temporaire pour la barre des statistiques
+    stats_surface = pygame.Surface((stats_rect_width, 300), pygame.SRCALPHA)
+    # Remplir la surface avec une couleur semi-transparente (R, G, B, Alpha)
+    stats_surface.fill((50, 50, 50, 150))  # Alpha à 150 pour une semi-transparence
+    # Dessiner la surface transparente sur la fenêtre principale
+    window.blit(stats_surface, (WIDTH - stats_rect_width+60, 10))
+    # Définir le rectangle de la barre des statistiques avec le même décalage
+    stats_rect = pygame.Rect(WIDTH - stats_rect_width+ 60, 10, stats_rect_width, 300)
+
     if stats_rect_width > 0:  # Affiche les statistiques si la zone est visible
         stats_texts = [
             f"Boids: {len(boids)}",
@@ -1190,7 +1305,7 @@ while running:
         ]
         for i, text in enumerate(stats_texts):
             stat_surface = font_petit.render(text, True, (255, 255, 255))
-            window.blit(stat_surface, (WIDTH - stats_rect_width + 20, 20 + i * 30))
+            window.blit(stat_surface, (WIDTH - stats_rect_width + 70, 20 + i * 30))
     if paused:
         #dessiner du triangle play    
         pygame.draw.polygon(window, WHITE, triangle_play)
@@ -1232,8 +1347,10 @@ while running:
         message_rect = message_text.get_rect(center=(WIDTH // 2, 50))  # Centrer le texte
         window.blit(message_text, message_rect)  # Dessiner le message sur l'écran
         message_display_timer -= 1  # Réduire le timer à chaque frame
-
-
+    if interaction_mode:
+        mouse_pos = pygame.mouse.get_pos()
+        pygame.draw.circle(window, (255, 255, 255), mouse_pos, 50, width=2)  # Cercle de rayon 50
+    
     # Filtrer les bombes inactives
     bombs = [bomb for bomb in bombs if bomb.is_active()]
 
