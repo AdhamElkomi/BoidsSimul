@@ -232,6 +232,11 @@ t = 0 # Temps initial
 eight_center = pygame.Vector2(WIDTH // 2, HEIGHT // 2)  # Centre du chemin
 eight_scale = 200  # Taille du chemin (rayon)
 
+# AFFICHAGE
+# Variables pour les messages
+mode_message = ""
+message_timer = 0  # Timer pour afficher les messages
+MESSAGE_DURATION = 120  # Durée d'affichage du message en frames (ex : 2 secondes)
 
 
 
@@ -390,7 +395,17 @@ class Boid:
     def apply_behaviors(self, boids, plane, bombs, eight_mode=False, eight_center=None, eight_scale=None):
         if paused:
             return
+
         if self.state == "active":
+            # Initialiser les forces
+            alignment = pygame.Vector2(0, 0)
+            cohesion = pygame.Vector2(0, 0)
+            separation = pygame.Vector2(0, 0)
+            avoid_plane = pygame.Vector2(0, 0)
+            eight_force = pygame.Vector2(0, 0)
+            attraction_force = pygame.Vector2(0, 0)
+            avoidance_force = pygame.Vector2(0, 0)
+
             # Ajuster dynamiquement le champ de vision en fonction de la distance avec l'avion
             distance_to_plane = float('inf')  # Valeur par défaut si l'avion n'existe pas
             if plane_active and plane is not None:
@@ -399,37 +414,52 @@ class Boid:
             if plane_active and plane is not None and distance_to_plane < plane.size + VIEW_RADIUS:
                 adjusted_view_radius = VIEW_RADIUS * 1.5  # Augmenter le champ de vision
 
-            # Appliquer les forces comportementales
-            alignment = self.align(boids, adjusted_view_radius)
-            cohesion = self.cohere(boids, adjusted_view_radius)
-            separation = self.separate(boids, adjusted_view_radius)
-            avoid_plane = self.avoid_plane(plane) if plane_active and plane is not None else pygame.Vector2(0, 0)
+            # Appliquer les forces comportementales normales si le mode "interaction" n'est pas activé
+            if not interaction_mode:
+                alignment = self.align(boids, adjusted_view_radius)
+                cohesion = self.cohere(boids, adjusted_view_radius)
+                separation = self.separate(boids, adjusted_view_radius)
+                avoid_plane = self.avoid_plane(plane) if plane_active and plane is not None else pygame.Vector2(0, 0)
 
-            # Calculer la force du chemin en 8 si le mode est activé
-            if eight_mode:
-                eight_force = self.follow_eight_path(eight_center, eight_scale)
-            else:
-                eight_force = pygame.Vector2(0, 0)  # Force nulle si le mode "8" est désactivé
+                if eight_mode:
+                    eight_force = self.follow_eight_path(eight_center, eight_scale)
 
-            # Ajustement pondéré des forces pour garder le groupe
+            # Gestion du mode interaction avec la souris
+            if interaction_mode:
+                mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
+                distance_to_mouse = self.position.distance_to(mouse_pos)
+
+                # Force d'attraction vers la souris (centre de masse)
+                if distance_to_mouse > 50:  # Rayon de sécurité autour de la souris
+                    attraction_force = (mouse_pos - self.position).normalize() * MAX_FORCE
+
+                # Force de répulsion pour éviter d'entrer dans le cercle
+                if distance_to_mouse < 50:
+                    avoidance_force = (self.position - mouse_pos).normalize() * MAX_FORCE
+
+            # Combiner toutes les forces avec des pondérations adaptées
             self.acceleration += (
                 0.6 * alignment +
                 0.5 * cohesion +
                 0.8 * separation +
                 1.5 * avoid_plane +
-                1.2 * eight_force
+                1.2 * eight_force +
+                1.0 * attraction_force +  # Influence de la souris
+                1.2 * avoidance_force     # Évite la souris
             )
 
+            # Mettre à jour la couleur en fonction des interactions
             self.check_battery_color()
             if separation.length() > 0:
-                self.color = (148, 0, 211)  #  : séparation
+                self.color = (148, 0, 211)  # Séparation
             elif alignment.length() > 0:
-                self.color = (255, 20, 147)  #  : alignement
+                self.color = (255, 20, 147)  # Alignement
             elif cohesion.length() > 0:
-                self.color = (255, 182, 150)  #  : cohésion
+                self.color = (255, 182, 150)  # Cohésion
             else:
                 self.color = (255, 255, 255)  # Blanc : aucune interaction
 
+        # Vérifier si le boid entre en collision avec une bombe
         for bomb in bombs:
             distance = self.position.distance_to(bomb.position)
             if distance < bomb.radius:  # Si le boid touche une bombe
@@ -437,35 +467,7 @@ class Boid:
                     random.uniform(0, WIDTH),
                     random.uniform(0, HEIGHT - SETTINGS_BAR_HEIGHT)
                 )
-                break  # Évitez plusieurs téléportations en un seul tick
-
-        # Déterminer la couleur en fonction des interactions
-        if interaction_mode:
-            mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
-            distance_to_mouse = self.position.distance_to(mouse_pos)
-            
-            # Force d'attraction (centre de masse autour de la souris)
-            if distance_to_mouse > 50:  # Rayon de sécurité autour de la souris
-                attraction_force = (mouse_pos - self.position).normalize() * MAX_FORCE
-            else:
-                attraction_force = pygame.Vector2(0, 0)  # Pas d'attraction dans le cercle
-
-            # Force de répulsion pour éviter d'entrer dans le cercle
-            if distance_to_mouse < 50:
-                avoidance_force = (self.position - mouse_pos).normalize() * MAX_FORCE
-            else:
-                avoidance_force = pygame.Vector2(0, 0)
-
-            # Combiner les forces
-            self.acceleration += (
-                0.6 * alignment +
-                0.5 * cohesion +
-                0.8 * separation +
-                1.5 * avoid_plane +
-                1.0 * attraction_force +  # Influence de la souris
-                1.2 * avoidance_force     # Évite la souris
-            )
-
+                break  # Éviter plusieurs téléportations en un seul tick
 
 
         
@@ -1189,8 +1191,12 @@ while running:
                 wind_direction = pygame.Vector2(0, 0)
             elif event.key == pygame.K_i:
                 interaction_mode = not interaction_mode
+                mode_message = "Mode Interaction: ON" if interaction_mode else "Mode Interaction: OFF"
+                message_timer = MESSAGE_DURATION
             if event.key == pygame.K_8:
                 eight_mode = not eight_mode  # Alterne le mode
+                mode_message = "Mode Lemniscate: ON" if eight_mode else "Mode Lemniscate: OFF"
+                message_timer = MESSAGE_DURATION 
 
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -1218,10 +1224,12 @@ while running:
             elif button_plane.collidepoint(event.pos):
                 if plane_active:
                     plane = None
+                    mode_message = "Avion détruit"
                 else :
                     plane = Plane() 
-                    message_display_timer = 120  # Afficher le message pendant 120 frames (~2 secondes)
+                    mode_message = "Avion créé"
                 plane_active = not plane_active  # Alterne entre actif et inactif
+                message_timer = MESSAGE_DURATION
             elif button_stats.collidepoint(event.pos):
                 stats_visible = not stats_visible
             elif button_accelerate.collidepoint(event.pos):
@@ -1341,16 +1349,19 @@ while running:
     if len(bombs) == 0:
         warning_blink_timer = 0  # Réinitialiser le timer lorsque plus de bombes
 
-    if message_display_timer > 0:
-        font_message = pygame.font.Font(None, 50)  # Police pour le message
-        message_text = font_message.render("Un avion est créé", True, (0, 0, 0))  # Texte blanc
-        message_rect = message_text.get_rect(center=(WIDTH // 2, 50))  # Centrer le texte
-        window.blit(message_text, message_rect)  # Dessiner le message sur l'écran
-        message_display_timer -= 1  # Réduire le timer à chaque frame
     if interaction_mode:
         mouse_pos = pygame.mouse.get_pos()
         pygame.draw.circle(window, (255, 255, 255), mouse_pos, 50, width=2)  # Cercle de rayon 50
     
+    # Afficher le message temporaire si le timer est actif
+    if message_timer > 0:
+        font_message = pygame.font.Font(None, 50)  # Police pour le message
+        text_surface = font_message.render(mode_message, True, (255, 255, 255))  # Texte blanc
+        text_rect = text_surface.get_rect(center=(WIDTH // 2, 50))  # Centré en haut de l'écran
+        pygame.draw.rect(window, (0, 0, 0), text_rect.inflate(20, 10))  # Fond noir avec marges
+        window.blit(text_surface, text_rect)  # Dessiner le texte
+        message_timer -= 1  # Réduire le timer
+
     # Filtrer les bombes inactives
     bombs = [bomb for bomb in bombs if bomb.is_active()]
 
