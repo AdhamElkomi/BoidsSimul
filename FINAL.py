@@ -6,7 +6,7 @@ import random
 pygame.init()
 
 # Dimensions de la fenêtre
-WIDTH, HEIGHT = 1024 , 600
+WIDTH, HEIGHT = 1250 , 650
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Simulation de Boids avec Prédateur")
 
@@ -17,16 +17,24 @@ RED = (255, 0, 0)
 BLUE = (148, 0, 211)
 
 # Paramètres de simulation
-BOID_COUNT = 1000
+BOID_COUNT = 2000
 
 match BOID_COUNT:
+    case 5000:
+        SEPARATION_RADIUS = 20
+        ALIGNMENT_RADIUS = 75
+        COHESION_RADIUS = 100
+        CELL_SIZE = 30
+        FRAME_RATE = 10
+        COHESION_ALIGNMENT_UPDATE_INTERVAL = 40
+        BOID_SIZE = 2
     case 2000:
         SEPARATION_RADIUS = 20
         ALIGNMENT_RADIUS = 75
         COHESION_RADIUS = 100
         CELL_SIZE = 40
-        FRAME_RATE = 20
-        COHESION_ALIGNMENT_UPDATE_INTERVAL = 20 
+        FRAME_RATE = 25
+        COHESION_ALIGNMENT_UPDATE_INTERVAL = 25 
         BOID_SIZE = 3
     case 1000:
         SEPARATION_RADIUS = 25
@@ -71,7 +79,7 @@ match BOID_COUNT:
 
 
 BOID_SPEED = 4
-PREDATOR_SPEED = BOID_SPEED * 1.1
+PREDATOR_SPEED = BOID_SPEED * 1.3
 WAIT_TIME_AFTER_ATTACK = 300
 PREDATOR_DETECTION_RADIUS = 100
 VISION_ANGLE = math.pi / 4
