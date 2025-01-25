@@ -1,114 +1,118 @@
-# Simulation de Boids avec **Pygame**
+# Boids Simulation with **Pygame** | ASFOUR 🐦💣
 
-## Description
-Ce projet implémente une simulation interactive de **boids** (comportement d'essaim) en utilisant **Python** et la bibliothèque **Pygame**. Les boids sont des agents simulant des comportements collectifs tels que les vols d'oiseaux ou les bancs de poissons en suivant des règles simples d'alignement, de cohésion et de séparation.
+Welcome to the **Boids Simulation with Predator**! This project is a visual and interactive simulation of boid behavior, featuring dynamic flocking and a predator. It also includes exciting interactive modes, allowing you to experiment with different behaviors and even have fun dropping bombs to eliminate boids!
 
-L'interface offre plusieurs outils interactifs permettant de modifier les paramètres de la simulation en temps réel.
+## 🌟 Key Features
+- Real-time simulation of boid behaviors: **separation**, **alignment**, and **cohesion**.
+- A **predator** that dynamically hunts boids.
+- **Interactive modes** for unique simulations:
+  - **Mouse Interaction Mode**: Control boids' behavior with your mouse.
+  - **Wind Mode**: Push the boids using directional wind forces.
+  - **Lemniscate Mode**: Watch boids follow a mesmerizing figure-eight path.
+- Have fun **dropping bombs** from the plane to eliminate boids!
+- Adjustable FPS and boid count for performance testing.
 
-## Fonctionnalités
+## 🎮 Modes and How to Play
 
-### 🐦 **Simulation réaliste**
-- **Interactions basées sur trois comportements :**
-  1. **Séparation** : éviter les collisions avec les voisins proches.
-  2. **Alignement** : suivre la direction moyenne des voisins.
-  3. **Cohésion** : se rapprocher du centre de masse du groupe.
+### 🔄 Lemniscate Mode
+- **Activation**: Press **8** on your keyboard.
+- **Description**: Boids will follow a smooth figure-eight path.
 
-- **Mouvement fluide** : limitation de la vitesse de rotation pour des trajectoires naturelles.
+### 🖱️ Mouse Interaction Mode
+- **Activation**: Press **I**.
+- **Description**: Boids are attracted to the mouse but avoid getting too close to its center.
 
-### 🎛️ **Interface utilisateur interactive**
-- **Sliders** : ajustez les paramètres des boids (angle de vision, rayons d'alignement, séparation et cohésion).
-- **Boutons** :
-  - `+` : ajouter un boid.
-  - `-` : retirer un boid.
-  - `Clear` : réinitialiser tous les boids.
-  - `▶️/⏸️` : mettre en pause ou reprendre la simulation.
-  - `⏪/⏩` : accélerer ou décélérer la simulation.
-  - `Show/Hide` : afficher ou masquer les zones de vision.
+### 🌬️ Wind Mode
+- **Activation**: Press **V** to toggle wind mode.
+- **Controls**:
+  - **W**: Wind blows upward.
+  - **A**: Wind blows left.
+  - **S**: Wind blows downward.
+  - **D**: Wind blows right.
+  - **V**: Stop the wind.
 
-### 🎨 **Affichage des interactions**
-Chaque boid change de couleur en fonction du comportement dominant :
-- **Alignement** : rose.
-- **Cohésion** : rose clair.
-- **Séparation** : violet.
+### 💣 Bomb Dropping
+- **How to Use**: Press **B** to drop bombs from the plane.
+- **Description**: Bombs explode on contact, eliminating nearby boids. It's a fun way to control their numbers or add excitement to the simulation!
 
 
-## Prérequis
+## 🚀 Getting Started
 
-- **Python** 3.9+
-- **Pygame** 2.0+
+### Prerequisites
+- Python 3.7 or later
+- Pygame library
 
-### Installation des dépendances
-Pour installer les bibliothèques nécessaires, exécutez la commande suivante :
-
+Install Pygame using pip:
 ```bash
 pip install pygame
 ```
 
-## 💻 **Utilisation**
 
-1. **Clonez ou téléchargez ce dépôt :**
-   ```bash
-   git clone https://github.com/votre-utilisateur/simulation-boids.git
-   cd simulation-boids
-   ```
-
-2. Lancez le script principal :
-   ```bash
-   python boids_simulation.py
-   ```
-
-3. Interagissez avec l'interface :
-
-- **Sliders** : ajustez les paramètres des boids.
-- **Boutons** :
-  - `+` : ajoute un boid.
-  - `-` : retire un boid.
-  - **Clear** : réinitialise tous les boids.
-  - **Pause** : met en pause/reprend la simulation.
-  - **Show/Hide** : affiche ou masque les zones de vision.
-
-## 📂 **Structure du code**
-**Classe** `Boid`:
-
-- Classe représentant chaque agent avec ses propriétés (position, vitesse, accélération) et comportements.
-- Méthodes principales :
-   - `apply_behaviors` : applique les forces d'alignement, de cohésion et de séparation.
-   - `update` : met à jour la position et la direction.
-   - `draw` : dessine le boid à l'écran.
-- Interface utilisateur :
-   - **Sliders** : contrôle des paramètres en temps réel.
-   - **Boutons** : ajout, suppression ou réinitialisation des boids.
-- **Boucle principale** :
-   Gère l'affichage, les événements utilisateurs et la mise à jour des boids.
-
-## 🌀 **Scénarios d'interaction**
-
-1. Comportements simples :
-
-    Les boids se dirigent vers des groupes proches tout en évitant les collisions.
-
-2. Changements dynamiques :
-
-    - Ajustez le rayon d'alignement pour observer des comportements plus dispersés ou compacts.
-    - Augmentez l'angle de vision pour voir les boids réagir à des voisins plus éloignés.
-
-3. Ajout et suppression: 
-
-    - Ajoutez des boids pour observer comment les nouveaux agents s'intègrent au groupe.
-    - Supprimez des boids pour voir comment cela affecte la structure.
-
-## 🔧 **Améliorations possibles**
+---
 
 
-- Ajouter un prédateur pour chasser les boids.
-- Intégrer des obstacles que les boids doivent éviter.
-- Exporter des animations sous forme de fichiers vidéo.
+## How to Run
+1. Clone the repository:
+```bash
+git clone https://github.com/your-repo/BoidsSimul.git
+```
+2. Navigate to the project directory:
+```bash
+cd BoidsSimul
+```
+3. Run the simulation:
+```bash
+python Asfour_finalVersion.py
+```
 
-## 📜 **Licence**
-Ce dépôt est privé. Toute utilisation, modification ou redistribution sans autorisation explicite est interdite. Veuillez consulter le fichier `LICENSE` pour plus d'informations.
+---
 
-## 👨‍💻 **Auteurs**
+## 🎮 Controls Overview
+Arrow Up: Add a boid to the simulation.
+Arrow Down: Remove a boid from the simulation.
+Space: Pause/unpause the simulation.
+Esc: Exit the program.
+B: Drop bombs from the plane.
 
-> AHMED SALAH ALI Adham
-> ELAYOUBI Hadi
-> AIBOUD Lyes
+## 📊 Performance Testing
+The simulation dynamically adjusts for performance based on the number of boids. To test the FPS:
+
+1. Open the code and modify the BOID_COUNT variable to set the number of boids (e.g., 50, 500, 2000).
+2. Run the simulation and observe the FPS displayed in the terminal.
+
+## 💡 Tips for Fun
+- Experiment with the different modes to see how boids react.
+- Combine Wind Mode with Mouse Interaction for chaotic and exciting boid movements.
+- Drop bombs strategically to clear the boids or create dramatic effects in the simulation!
+
+  ![Screenshot 2024-12-15 163946](https://github.com/user-attachments/assets/ba5999fd-afd5-4b28-b092-556960181e2e)
+
+## 🚀 External Extension: Optimized FPS for Large Boid Simulations
+To handle hundreds or thousands of boids efficiently, launch the OptimisationFPS(extension_externe).py file. This extension ensures smooth performance even with a large number of boids. It dynamically adjusts simulation parameters to optimize the frame rate.
+
+Simply run the script, and for testing its effectiveness, try changing the number of boids by modifying the BOID_COUNT parameter in the code.
+
+![image](https://github.com/user-attachments/assets/4078dadc-a7a3-4356-842c-0596c7251b26)
+
+## 📄 Detailed Report
+This section includes a downloadable PDF that provides an in-depth explanation IN FRENCH of the project's purpose, design, and implementation. It dives into the technical aspects, including boid behavior, interaction modes, and the logic behind specific features. Consult the file to understand the detailed thought process and methodology used throughout the project.
+
+[Rapport_detaille_ASFOUR.pdf](https://github.com/user-attachments/files/18548231/Rapport_detaille_ASFOUR.pdf)
+
+## 🛠️ User Manual
+This section features a PDF user manual that guides you - IN FRENCH - through setting up and interacting with the simulation. It explains how to activate different modes, adjust parameters, and use the various features, including dropping bombs to interact with the boids. The document is designed to make the simulation easy and fun to explore—check it out for all the details!
+
+[Notice_d'utilisation_ASFOUR.pdf](https://github.com/user-attachments/files/18548238/Notice_d.utilisation_ASFOUR.pdf)
+
+## 📄 License
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+Feel free to explore, play, and customize the simulation to your liking. Enjoy watching the boids in action!
+This version emphasizes the interactive and fun aspects of the project while keeping it simple and engaging. Let me know if you need further tweaks!
+
+
+## 👨‍💻 **Authors**
+
+- > AHMED SALAH ALI Adham
+- > ELAYOUBI Hadi
+- > AIBOUD Lyes
